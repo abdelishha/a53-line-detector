@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>A53 Line Detector</title>
+<style>
+html,body{margin:0;background:#000;color:#fff;font-family:Arial;height:100%;overflow:hidden}
+video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover}
+#roi{position:fixed;left:10%;right:10%;bottom:20%;height:25%;border:4px solid #0f8;pointer-events:none}
+#panel{position:fixed;bottom:0;left:0;right:0;background:#000c;text-align:center;padding:10px}
+#d{font-size:50px;font-weight:bold}#v{font-size:15px}button{font-size:20px;padding:10px 20px;margin:4px}
+canvas{display:none}
+</style></head><body>
+<video id="cam" autoplay playsinline muted></video><div id="roi"></div>
+<div id="panel"><div id="d">PRESS START</div><div id="v">Aim rear camera at a light floor with black tape.</div>
+<button onclick="start()">START CAMERA</button><button onclick="stop()">STOP</button></div><canvas id="c"></canvas>
+<script>
+let s=null,run=false;const cam=document.getElementById('cam'),c=document.getElementById('c'),x=c.getContext('2d'),d=document.getElementById('d'),v=document.getElementById('v');
+async function start(){try{s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:640},height:{ideal:480}},audio:false});cam.srcObject=s;await cam.play();run=true;requestAnimationFrame(loop)}catch(e){d.textContent='CAMERA ERROR';v.textContent=e.message}}
+function stop(){run=false;if(s)s.getTracks().forEach(t=>t.stop());cam.srcObject=null;d.textContent='STOPPED'}
+function loop(){if(!run)return;if(cam.readyState>=2){let w=320,h=240;c.width=w;c.height=h;x.drawImage(cam,0,0,w,h);let a=[0,0,0],n=[0,0,0];for(let y=h*.62;y<h*.95;y+=5)for(let q=0;q<w;q+=5){let p=x.getImageData(q,y,1,1).data,g=.299*p[0]+.587*p[1]+.114*p[2];if(g<120){let r=q<w/3?0:q<2*w/3?1:2;a[r]+=255-g;n[r]++}}let z=a.map((q,i)=>n[i]?q/n[i]:0),m=Math.max(...z),dir=m<55?'NO LINE':z[1]>=z[0]&&z[1]>=z[2]?'CENTER':z[0]>z[2]?'LEFT':'RIGHT';d.textContent=dir;v.textContent=`LEFT ${z[0].toFixed(0)}   CENTER ${z[1].toFixed(0)}   RIGHT ${z[2].toFixed(0)}`}requestAnimationFrame(loop)}
+</script></body></html>
